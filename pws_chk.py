@@ -1,6 +1,5 @@
 import math
 
-
 def entropy(x):
     r=0
     l=len(x)
@@ -18,9 +17,21 @@ def entropy(x):
         return 0
     else:
         e=math.log2(pow(r,l))
-        return e, l, r
+        ocena = ""
+        if e < 28:
+            ocena = "Bardzo Słabe"
+        elif 28 <= e <= 35:
+            ocena = "Słabe"
+        elif 36 <= e <= 59:
+            ocena = "Silne"
+        elif 60 <= e <= 127:
+            ocena = "Bardzo Silne"
+        else:
+            ocena = "Standard Wojskowy"
 
-def dictionary_test(x):
+        return e, ocena
+
+def dictionary_test(x): #sprawdzenie czy hasło znajduje się w popularnych hasłach
     chk_x = x.lower()
     password_list = open("password_list.txt", "r")
     common_passwords = set(password_list.read().splitlines())
@@ -28,7 +39,7 @@ def dictionary_test(x):
         return True
     return False
 
-def pattern_test(x):
+def pattern_test(x): #sprawdzenie czy hasło zawiera łatwe do odgadnięcia wzorce
     x_lower = x.lower()
 
     # 1. Znane wzorce klawiaturowe i sekwencje
@@ -50,7 +61,7 @@ def pattern_test(x):
         "1111", "2222", "3333", "4444", "5555",
         "6666", "7777", "8888", "9999", "0000",
         "aaaa", "bbbb", "cccc",
-        "abab", "1212", "admin", "pass", "login",
+        "abab", "1212", "admin", "pass", "login", "haslo"
     ]
     if any(p in x_lower for p in patterns):
         return True
