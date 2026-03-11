@@ -2,6 +2,29 @@ import math
 import requests
 import hashlib
 
+def format_time(seconds):
+    if seconds < 0.001:
+        return "natychmiast"
+    if seconds < 1:
+        return f"{seconds:.3f} sekund"
+    if seconds < 60:
+        return f"{seconds:.1f} sekund"
+    if seconds < 3600:
+        return f"{seconds / 60:.1f} minut"
+    if seconds < 86400:
+        return f"{seconds / 3600:.1f} godzin"
+    if seconds < 86400 * 365:
+        return f"{seconds / 86400:.1f} dni"
+    if seconds < 86400 * 365 * 1000:
+        return f"{seconds / (86400 * 365):.1f} lat"
+    if seconds < 86400 * 365 * 1e6:
+        return f"{seconds / (86400 * 365 * 1000):.1f} tysięcy lat"
+    if seconds < 86400 * 365 * 1e9:
+        return f"{seconds / (86400 * 365 * 1e6):.1f} milionów lat"
+    if seconds < 86400 * 365 * 1e12:
+        return f"{seconds / (86400 * 365 * 1e9):.1f} miliardów lat"
+    return f"{seconds / (86400 * 365 * 1e12):.1f} bilionów lat"
+
 def entropy(pwd):
     r=0
     l=len(pwd)
@@ -20,23 +43,41 @@ def entropy(pwd):
     else:
         e=math.log2(pow(r,l))
         if e < 28:
-            ocena = "Bardzo Słabe"
+            grade = "Bardzo Słabe"
         elif 28 <= e <= 35:
-            ocena = "Słabe"
+            grade = "Słabe"
         elif 36 <= e <= 59:
-            ocena = "Silne"
+            grade = "Silne"
         elif 60 <= e <= 127:
-            ocena = "Bardzo Silne"
+            grade = "Bardzo Silne"
         else:
-            ocena = "Standard Wojskowy"
-        return e, ocena
+            grade = "Standard Wojskowy"
+
+        t = pow(r,l) / (3 * pow(10,11)) #przyblizony czas złamania hasła w sekundach, przez karte graficzna rtx 5090
+        return e, grade, format_time(t)
 
 def dictionary_test(pwd): #sprawdzenie, czy hasło znajduje się w popularnych hasłach
     chk_pwd = pwd.lower()
-    password_list = open("password_list.txt", "r")
-    common_passwords = set(password_list.read().splitlines())
+    with open("password_list.txt", "r") as password_list:
+        common_passwords = set(p.lower() for p in password_list.read().splitlines())
+
+    #Sprawdzenie czy całe hasło jest w słowniku
     if chk_pwd in common_passwords:
         return True
+
+    #Sprawdzenie czy któreś słowo ze słownika jest częścią hasła
+    for common in common_passwords:
+        if len(common) >= 4 and common in chk_pwd:
+            return True
+
+    # Sprawdzenie czy jakaś część hasła jest w słowniku
+    min_len = 4
+    for i in range(len(chk_pwd)):
+        for j in range(i + min_len, len(chk_pwd) + 1):
+            substring = chk_pwd[i:j]
+            if substring in common_passwords:
+                return True
+
     return False
 
 def pattern_test(pwd): #sprawdzenie, czy hasło zawiera łatwe do odgadnięcia wzorce
@@ -148,13 +189,12 @@ def levenshtein(s, t): #algortym odleglosci skonczonych ciagow znakow
 
     return d[m][n]
 
-def personal_test(pwd, name, surname, email):
+def personal_test(pwd, email):
     pwd = pwd.lower()
-    name = name.lower()
-    surname = surname.lower()
-    email_prefix = email.split('@')[0].lower() if '@' in email else email.lower()
+    email_tmp = email.split('@')[0].lower() if '@' in email else email.lower()
+    email_prefix = email_tmp.split('.')[0] if '.' in email_tmp else email_tmp
 
-    data_to_check = [name, surname, email_prefix]
+    data_to_check = [email_prefix]
     tolerance_limit = 3
 
     for data in data_to_check:
@@ -162,13 +202,10 @@ def personal_test(pwd, name, surname, email):
             continue
 
         if data in pwd:
-            print(f"Hasło zawiera Twoje dane w czystej formie ({data})")
-            return True
+            return data, 0
 
         distance = levenshtein(pwd, data)
-
         if distance <= tolerance_limit:
-            print(f"Haslo jest zbyt blisko twoich danych ({data}) - odległość Levenshteina: {distance}")
-            return True
+            return data, distance
 
     return False

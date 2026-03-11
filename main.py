@@ -1,16 +1,44 @@
 import pipeline
 
 if __name__ == "__main__":
-    password = input("Podaj hasło: ")
-    name = input("Podaj imię: ")
-    surname = input("Podaj nazwisko: ")
-    email = input("Podaj email: ")
-    results = pipeline.pipe.run(password, name, surname, email)
+    while True:
+        print("\n" + "=" * 40)
+        flag = input('Czy chcesz sprawdzić swoje hasło?\n 1: tak\n 2: nie\nWybór: ')
+        if flag == '1':
+            password = input("\nPodaj hasło: ")
+            email = input("Podaj login: ")
+            results = pipeline.pipe.run(password, email)
 
-    if results['entropy_check'] == 0:
-        print("Hasło nie może być puste.")
-    elif results['dictionary_check'] or results['pattern_check']:
-        print("Hasło zawiera łatwe do odgadnięcia wzorce.")
-    else:
-        for key, result in results.items():
-            print(f"{key}: {result}")
+            entropy, grade, time = results['entropy_check']
+            pwnd = results['pwnd_pswd']
+            regex_ok = results['regex_test']
+            dict_ok = not results['dictionary_check']
+            pattern_ok = not results['pattern_check']
+            personal_ok = results['personal_test']
+
+            leaks_txt = "✓ Brak wycieków" if pwnd == 0 else f"✗ Znalezione {pwnd}x"
+
+            print("\n" + "=" * 40)
+            print("Podsumowanie audytu hasła")
+            print("=" * 40)
+            print(f"  Entropia:              {entropy:.2f} bitów")
+            print(f"  Ocena:                 {grade}")
+            print(f"  Czas złamania hasła:   {time}")
+            print(f"  Regex (format):        {'✓ Poprawne z wzorcami haseł' if regex_ok else '✗ Brak poprawności z wzorcami bezpieczeństwa'}")
+            print(f"  Wycieki danych:        {leaks_txt}")
+            print(f"  Test słownikowy:       {'✓ Brak dopasowań z słownikiem' if dict_ok else '✗'}")
+            print(f"  Test wzorców:          {'✓ Brak wzorców' if pattern_ok else '✗'}")
+            if not personal_ok:
+                print(f"  Test danych osobowych: ✓ Brak dopasowań z loginem")
+            else:
+                data, distance = personal_ok
+                if distance == 0:
+                    print(f"  Test danych osobowych: ✗ Zawiera dane osobowe ({data}) - dokładne dopasowanie")
+                else:
+                    print(f"  Test danych osobowych: ✗ Zawiera dane osobowe ({data}) - odległość Levenshteina: {distance}")
+            print("=" * 40)
+        elif flag == '2':
+            print("Dziękujemy za skorzystanie z programu. Do zobaczenia!")
+            break
+        else:
+            print("Nieprawidłowy wybór. Proszę wybrać 1 lub 2.")
