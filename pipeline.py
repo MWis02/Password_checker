@@ -1,3 +1,4 @@
+import inspect
 import pws_chk
 
 class PasswordPipeline:
@@ -10,8 +11,10 @@ class PasswordPipeline:
 
     def run(self, password, name, surname, email):
         results = {}
+        all_args = (password, name, surname, email)
         for check in self.checks:
-            results[check.__name__] = check(password, name, surname, email)
+            num_params = len(inspect.signature(check).parameters)
+            results[check.__name__] = check(*all_args[:num_params])
         return results
 
 pipe = PasswordPipeline()
