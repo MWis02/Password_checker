@@ -16,6 +16,10 @@ class PasswordPipeline:
 
 pipe = PasswordPipeline()
 
+@pipe.step #test regex
+def regex_test(pw):
+    return pws_chk.regex_test(pw)
+
 @pipe.step #test słownikowy
 def dictionary_check(pw):
     return pws_chk.dictionary_test(pw)

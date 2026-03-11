@@ -17,7 +17,6 @@ def entropy(x):
         return 0
     else:
         e=math.log2(pow(r,l))
-        ocena = ""
         if e < 28:
             ocena = "Bardzo Słabe"
         elif 28 <= e <= 35:
@@ -28,10 +27,9 @@ def entropy(x):
             ocena = "Bardzo Silne"
         else:
             ocena = "Standard Wojskowy"
-
         return e, ocena
 
-def dictionary_test(x): #sprawdzenie czy hasło znajduje się w popularnych hasłach
+def dictionary_test(x): #sprawdzenie, czy hasło znajduje się w popularnych hasłach
     chk_x = x.lower()
     password_list = open("password_list.txt", "r")
     common_passwords = set(password_list.read().splitlines())
@@ -39,7 +37,7 @@ def dictionary_test(x): #sprawdzenie czy hasło znajduje się w popularnych has�
         return True
     return False
 
-def pattern_test(x): #sprawdzenie czy hasło zawiera łatwe do odgadnięcia wzorce
+def pattern_test(x): #sprawdzenie, czy hasło zawiera łatwe do odgadnięcia wzorce
     x_lower = x.lower()
 
     # 1. Znane wzorce klawiaturowe i sekwencje
@@ -78,4 +76,15 @@ def pattern_test(x): #sprawdzenie czy hasło zawiera łatwe do odgadnięcia wzor
         if ord(x[i]) - 1 == ord(x[i+1]) and ord(x[i+1]) - 1 == ord(x[i+2]):
             return True
 
+    return False
+
+def regex_test(x, min_length=8):
+    import re
+    if len(x) < min_length:
+        return False
+    if (re.search(r'[a-z]', x) #sprawdzenie obecności małych liter
+            and re.search(r'[A-Z]', x) #sprawdzenie obecności dużych liter
+            and re.search(r'[0-9]', x) #sprawdzenie obecności cyfr
+            and re.search(r'[^a-zA-Z0-9]', x)): #sprawdzenie obecności znaków specjalnych
+        return True
     return False
