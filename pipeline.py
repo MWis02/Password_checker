@@ -8,10 +8,10 @@ class PasswordPipeline:
         self.checks.append(func)
         return func
 
-    def run(self, password):
+    def run(self, password, name, surname, email):
         results = {}
         for check in self.checks:
-            results[check.__name__] = check(password)
+            results[check.__name__] = check(password, name, surname, email)
         return results
 
 pipe = PasswordPipeline()
@@ -20,6 +20,10 @@ pipe = PasswordPipeline()
 def regex_test(pw):
     return pws_chk.regex_test(pw)
 
+@pipe.step #test wycieków
+def pwnd_pswd(pw):
+    return pws_chk.pwnd_pswd(pw)
+
 @pipe.step #test słownikowy
 def dictionary_check(pw):
     return pws_chk.dictionary_test(pw)
@@ -27,6 +31,10 @@ def dictionary_check(pw):
 @pipe.step #test wzorców
 def pattern_check(pw):
     return pws_chk.pattern_test(pw)
+
+@pipe.step #test osobisty
+def personal_test(pw, name, surname, email):
+    return pws_chk.personal_test(pw, name, surname, email)
 
 @pipe.step #test entropii
 def entropy_check(pw):

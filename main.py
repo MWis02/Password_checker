@@ -2,7 +2,10 @@ import pipeline
 
 if __name__ == "__main__":
     password = input("Podaj hasło: ")
-    results = pipeline.pipe.run(password)
+    name = input("Podaj imię: ")
+    surname = input("Podaj nazwisko: ")
+    email = input("Podaj email: ")
+    results = pipeline.pipe.run(password, name, surname, email)
     print(results)
 
     if results['entropy_check'] == 0:

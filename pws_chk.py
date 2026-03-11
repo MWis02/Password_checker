@@ -1,16 +1,18 @@
 import math
+import requests
+import hashlib
 
-def entropy(x):
+def entropy(pwd):
     r=0
-    l=len(x)
+    l=len(pwd)
 
-    if any(znak.islower() for znak in x):
+    if any(znak.islower() for znak in pwd):
         r+=26 #małe litery
-    if any(znak.isupper() for znak in x):
+    if any(znak.isupper() for znak in pwd):
         r+=26 #duże litery
-    if any(znak.isdigit() for znak in x):
+    if any(znak.isdigit() for znak in pwd):
         r+=10 #cyfry
-    if any(not znak.isalnum() for znak in x):
+    if any(not znak.isalnum() for znak in pwd):
         r+=32 #znaki specjalne (przyjmujemy 32 znaki specjalne)
 
     if r == 0  or l == 0:
@@ -29,16 +31,16 @@ def entropy(x):
             ocena = "Standard Wojskowy"
         return e, ocena
 
-def dictionary_test(x): #sprawdzenie, czy hasło znajduje się w popularnych hasłach
-    chk_x = x.lower()
+def dictionary_test(pwd): #sprawdzenie, czy hasło znajduje się w popularnych hasłach
+    chk_pwd = pwd.lower()
     password_list = open("password_list.txt", "r")
     common_passwords = set(password_list.read().splitlines())
-    if chk_x in common_passwords:
+    if chk_pwd in common_passwords:
         return True
     return False
 
-def pattern_test(x): #sprawdzenie, czy hasło zawiera łatwe do odgadnięcia wzorce
-    x_lower = x.lower()
+def pattern_test(pwd): #sprawdzenie, czy hasło zawiera łatwe do odgadnięcia wzorce
+    pwd_lower = pwd.lower()
 
     # 1. Znane wzorce klawiaturowe i sekwencje
     patterns = [
@@ -61,30 +63,112 @@ def pattern_test(x): #sprawdzenie, czy hasło zawiera łatwe do odgadnięcia wzo
         "aaaa", "bbbb", "cccc",
         "abab", "1212", "admin", "pass", "login", "haslo"
     ]
-    if any(p in x_lower for p in patterns):
+    if any(p in pwd_lower for p in patterns):
         return True
 
     # 2. Wykrycie powtórzeń tego samego znaku (np. "aaa", "111")
-    for i in range(len(x) - 2):
-        if x[i] == x[i+1] == x[i+2]:
+    for i in range(len(pwd) - 2):
+        if pwd[i] == pwd[i + 1] == pwd[i + 2]:
             return True
 
     # 3. Wykrycie sekwencji rosnącej/malejącej (np. "abc", "321")
-    for i in range(len(x) - 2):
-        if ord(x[i]) + 1 == ord(x[i+1]) and ord(x[i+1]) + 1 == ord(x[i+2]):
+    for i in range(len(pwd) - 2):
+        if ord(pwd[i]) + 1 == ord(pwd[i + 1]) and ord(pwd[i + 1]) + 1 == ord(pwd[i + 2]):
             return True
-        if ord(x[i]) - 1 == ord(x[i+1]) and ord(x[i+1]) - 1 == ord(x[i+2]):
+        if ord(pwd[i]) - 1 == ord(pwd[i + 1]) and ord(pwd[i + 1]) - 1 == ord(pwd[i + 2]):
             return True
 
     return False
 
-def regex_test(x, min_length=8):
+def regex_test(pwd, min_length=8):
     import re
-    if len(x) < min_length:
+    if len(pwd) < min_length:
         return False
-    if (re.search(r'[a-z]', x) #sprawdzenie obecności małych liter
-            and re.search(r'[A-Z]', x) #sprawdzenie obecności dużych liter
-            and re.search(r'[0-9]', x) #sprawdzenie obecności cyfr
-            and re.search(r'[^a-zA-Z0-9]', x)): #sprawdzenie obecności znaków specjalnych
+    if (re.search(r'[a-z]', pwd) #sprawdzenie obecności małych liter
+            and re.search(r'[A-Z]', pwd) #sprawdzenie obecności dużych liter
+            and re.search(r'[0-9]', pwd) #sprawdzenie obecności cyfr
+            and re.search(r'[^a-zA-Z0-9]', pwd)): #sprawdzenie obecności znaków specjalnych
         return True
+    return False
+
+def pwnd_pswd(pwd):
+    hash_sha1 = hashlib.sha1(pwd.encode('utf-8')).hexdigest().upper()
+    prefix = hash_sha1[:5]
+    suffix = hash_sha1[5:]
+
+    url = f"https://api.pwnedpasswords.com/range/{prefix}"
+
+    header = {
+        'User-Agent': 'Password_checker'
+    }
+    
+    try:
+        # Przekazujemy nagłówki do zapytania
+        response = requests.get(url, headers=header)
+
+        if response.status_code != 200:
+            return 0
+
+        for linia in response.text.splitlines():
+            finded_suffix, counted_data = linia.split(':')
+            if finded_suffix == suffix:
+                return int(counted_data)
+        return 0
+
+    except requests.exceptions.RequestException:
+        return 0
+
+
+def levenshtein(s, t): #algortym odleglosci skonczonych ciagow znakow
+    m = len(s) #dlugosc danych do porwnania z haslem
+    n = len(t) #dlugosc hasla
+
+    d = [[0] * (n + 1) for _ in range(m + 1)] #macierz zer
+
+    # Inicjalizacja pierwszej kolumny
+    for i in range(m + 1):
+        d[i][0] = i
+
+    # Inicjalizacja pierwszego wiersza
+    for j in range(n + 1):
+        d[0][j] = j
+
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if s[i - 1] == t[j - 1]:
+                cost = 0
+            else:
+                cost = 1
+
+            d[i][j] = min(
+                d[i - 1][j] + 1,  # usuwanie
+                d[i][j - 1] + 1,  # wstawianie
+                d[i - 1][j - 1] + cost  # zamiana
+            )
+
+    return d[m][n]
+
+def personal_test(pwd, name, surname, email):
+    pwd = pwd.lower()
+    name = name.lower()
+    surname = surname.lower()
+    email_prefix = email.split('@')[0].lower() if '@' in email else email.lower()
+
+    data_to_check = [name, surname, email_prefix]
+    tolerance_limit = 3
+
+    for data in data_to_check:
+        if len(data) < tolerance_limit:
+            continue
+
+        if data in pwd:
+            print(f"Hasło zawiera Twoje dane w czystej formie ({data})")
+            return True
+
+        distance = levenshtein(pwd, data)
+
+        if distance <= tolerance_limit:
+            print(f"Haslo jest zbyt blisko twoich danych ({data}) - odległość Levenshteina: {distance}")
+            return True
+
     return False
