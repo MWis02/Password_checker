@@ -39,16 +39,16 @@ def entropy(pwd):
         r+=32 #znaki specjalne (przyjmujemy 32 znaki specjalne)
 
     if r == 0  or l == 0:
-        return 0
+        return 0, "Bardzo Słabe", "natychmiast"
     else:
         e=math.log2(pow(r,l))
         if e < 28:
             grade = "Bardzo Słabe"
-        elif 28 <= e <= 35:
+        elif 28 <= e < 36:
             grade = "Słabe"
-        elif 36 <= e <= 59:
+        elif 36 <= e < 60:
             grade = "Silne"
-        elif 60 <= e <= 127:
+        elif 60 <= e < 128:
             grade = "Bardzo Silne"
         else:
             grade = "Standard Wojskowy"
