@@ -63,7 +63,6 @@ def build_batch_report(password: str, results: dict, with_email: bool) -> str:
         "\n" + "=" * 40 + "\n"
         "Podsumowanie audytu hasła\n"
         + "=" * 40 + "\n"
-        f"  Hasło:                 {password}\n"
         f"  Entropia:              {entropy:.2f} bitów\n"
         f"  Ocena:                 {grade}\n"
         f"  Czas łamania hasła:    {time}\n"
