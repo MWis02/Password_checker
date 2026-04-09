@@ -112,7 +112,7 @@ if __name__ == "__main__":
                             continue
 
                         if flag_1 == '1':
-                            # Oczekiwany format: hasło,email (oddzielone przecinkiem)
+                            # Oczekiwany format: hasło, email (oddzielone przecinkiem)
                             match = BATCH_WITH_EMAIL_RE.fullmatch(line)
                             if not match:
                                 print(f'Błąd wejścia: pomijam linię o niepoprawnym formacie (hasło,email): {line}')
