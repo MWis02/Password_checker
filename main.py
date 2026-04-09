@@ -4,24 +4,60 @@ import pipeline_wihout_email
 from pathlib import Path
 import unicodedata
 from datetime import datetime
+from typing import Pattern
 from outputs import print_interactive_summary, build_batch_report
+from regex_patterns import (
+    BATCH_WITH_EMAIL_RE,
+    EMAIL_RE,
+    MENU_MAIN_RE,
+    MENU_YES_NO_RE,
+    PASSWORD_RE,
+    PATH_RE,
+)
 
 # Czyści ekran konsoli przed kolejnym ekranem komunikatów
 clear_screen = lambda: os.system('cls' if os.name == 'nt' else 'clear')
+
+def normalize_input(value: str) -> str:
+    return ''.join(ch for ch in value if unicodedata.category(ch) != 'Cf').strip()
+
+
+def prompt_with_regex(prompt: str, pattern: Pattern[str], error_message: str, sanitizer=normalize_input) -> str:
+    while True:
+        value = sanitizer(input(prompt))
+        if pattern.fullmatch(value):
+            return value
+        print(f'Błąd wejścia: {error_message}')
 
 if __name__ == "__main__":
     while True:
         clear_screen()
         print("\n" + "=" * 40)
-        flag = input('Czy chcesz sprawdzić swoje hasło?\n 1: Tak\n 2: Wgraj dane z pliku\n 3: Zakończ program \nWybór: ')
+        flag = prompt_with_regex(
+            'Czy chcesz sprawdzić swoje hasło?\n 1: Tak\n 2: Wgraj dane z pliku\n 3: Zakończ program \nWybór: ',
+            MENU_MAIN_RE,
+            'dozwolone wartości to: 1, 2 lub 3.'
+        )
         if flag == '1':
             clear_screen()
-            flag_1 = input('Czy chcesz sprawdzić powiązanie hasła z mailem\n 1: Tak\n 2: Nie \nWybór: ')
+            flag_1 = prompt_with_regex(
+                'Czy chcesz sprawdzić powiązanie hasła z mailem\n 1: Tak\n 2: Nie \nWybór: ',
+                MENU_YES_NO_RE,
+                'dozwolone wartości to: 1 lub 2.'
+            )
             with_email = flag_1 == '1'
 
             password = input("\nPodaj hasło: ")
+            if not PASSWORD_RE.fullmatch(password):
+                print('Błąd wejścia: hasło nie może być puste.')
+                continue
+
             if with_email:
-                email = input("Podaj mail: ")
+                email = prompt_with_regex(
+                    'Podaj mail: ',
+                    EMAIL_RE,
+                    'niepoprawny format adresu e-mail (przykład: user@example.com).'
+                )
                 results = pipeline_with_email.pipe.run(password, email)
             else:
                 results = pipeline_wihout_email.pipe_no_personal.run(password)
@@ -38,13 +74,21 @@ if __name__ == "__main__":
 
         elif flag == '2':
             clear_screen()
-            flag_1 = input('Czy twój plik zawiera adresy email, odzielony od hasła przecinkiem\n 1: Tak\n 2: Nie \nWybór: ')
+            flag_1 = prompt_with_regex(
+                'Czy twój plik zawiera adresy email, odzielony od hasła przecinkiem\n 1: Tak\n 2: Nie \nWybór: ',
+                MENU_YES_NO_RE,
+                'dozwolone wartości to: 1 lub 2.'
+            )
             route_raw = input('Podaj ścieżkę do pliku: ')
-            route = ''.join(ch for ch in route_raw if unicodedata.category(ch) != 'Cf').strip().strip('"')
+            route = normalize_input(route_raw).strip('"')
             input_path = Path(route).expanduser()
 
             if not route:
-                print('Nie podano ścieżki do pliku.')
+                print('Błąd wejścia: nie podano ścieżki do pliku.')
+                continue
+
+            if not PATH_RE.fullmatch(route):
+                print('Błąd wejścia: ścieżka zawiera niedozwolone znaki.')
                 continue
 
             if not input_path.is_absolute():
@@ -69,11 +113,12 @@ if __name__ == "__main__":
 
                         if flag_1 == '1':
                             # Oczekiwany format: hasło,email (oddzielone przecinkiem)
-                            parts = [p.strip() for p in line.split(',', 1)]
-                            if len(parts) != 2 or not parts[0] or not parts[1]:
-                                print(f'Pomijam linię bez kompletu danych (hasło,email): {line}')
+                            match = BATCH_WITH_EMAIL_RE.fullmatch(line)
+                            if not match:
+                                print(f'Błąd wejścia: pomijam linię o niepoprawnym formacie (hasło,email): {line}')
                                 continue
-                            password, email = parts
+                            password = match.group('password').strip()
+                            email = match.group('email').strip()
                             results = pipeline_with_email.pipe.run(password, email)
                             report = build_batch_report(password, results, True)
                         else:
